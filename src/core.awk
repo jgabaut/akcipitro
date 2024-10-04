@@ -15,6 +15,7 @@
         # Extract and set the current scope
         if (match($0, /^\s*\[\s*([^A-Z\[\]]+)\s*\]\s*$/, a)) {
             current_scope=gensub(/\s*$/, "", "g", a[1])
+            # Replace dashes with underscores
             gsub(/[-]/, "_", current_scope)
             scopes[current_scope]++
         } else {
@@ -26,6 +27,9 @@
 
         variable = gensub(/^ *"?([^="]+)"? *=.*$/, "\\1", "g", $0)
         value = gensub(/^.*= *"?([^"]+)"? *$/, "\\1", "g", $0)
+
+        # Replace dashes with underscores
+        gsub(/[-]/, "_", variable)
 
         # Trim trailing whitespaces from variable and value
         gsub(/[ \t]+$/, "", variable)
@@ -50,6 +54,8 @@
         # Extract variable
         variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", $0)
         value = gensub(/^.*= *{ *([^}A-Z]+) *}$/, "\\1", "g", $0)
+        # Replace dashes with underscores
+        gsub(/[-]/, "_", variable)
         # Trim trailing whitespaces from variable and value
         gsub(/[ \t]+$/, "", variable)
         gsub(/[ \t]+$/, "", value)
@@ -81,6 +87,8 @@
             arrname = parts[1]
             arrval = gensub(/^.*= *\[ *([^\[A-Z\\\$]+) *\]$/, "\\1", "g", parts[0])
 
+            # Replace dashes with underscores
+            gsub(/[-]/, "_", arrname)
             # Trim trailing whitespaces from arrname, arrval
             gsub(/[ \t]+$/, "", arrname)
             gsub(/[ \t]+$/, "", arrval)
@@ -112,6 +120,8 @@
         # Extract variable
         variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", $0)
         value = gensub(/^.*= *{ *([^}A-Z]+) *}$/, "\\1", "g", $0)
+        # Replace dashes with underscores
+        gsub(/[-]/, "_", variable)
         # Trim trailing whitespaces from variable and value
         gsub(/[ \t]+$/, "", variable)
         gsub(/[ \t]+$/, "", value)
@@ -158,6 +168,9 @@
         variable = gensub(/^ *"?([^\[="]+)"? *=.*$/, "\\1", "g", $0)
         value = gensub(/^.*= *\[ *([^\[\\\$]+) *\]$/, "\\1", "g", $0)
 
+        # Replace dashes with underscores
+        gsub(/[-]/, "_", variable)
+
         # Trim trailing whitespaces from variable and value
         gsub(/[ \t]+$/, "", variable)
         gsub(/[ \t]+$/, "", value)
@@ -176,7 +189,7 @@
         arr_idx=0;
         split(value, arr_tokens, ",");
         for (arr_value in arr_tokens) {
-            val = gensub(/^ *"([^"=,\\\]]+)" *$/, "\\1", "g", arr_tokens[arr_value])
+            val = gensub(/^ *"([^",\\\]]+)" *$/, "\\1", "g", arr_tokens[arr_value])
             if (val != "") {
                 array_values[current_scope "_" variable "[" arr_idx "]" ]=val
                 if (!(current_scope in scopes)) {
