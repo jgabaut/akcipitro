@@ -222,9 +222,9 @@
                 if (!(current_scope in scopes)) {
                     scopes[current_scope]++
                 }
-                arr_struct_values[current_scope "_" variable "[" curr_idx "]_" var]=val
+                arr_struct_values[current_scope "_" variable "_" curr_idx "[" var "]"]=val
             }
-            arr_struct_names[current_scope "_" variable "[" curr_idx "]" ]=variable
+            arr_struct_names[current_scope "_" variable "_" curr_idx ]=variable
 
             sub(/^ *{ *[^}A-Z\\\$#\]\[]+ *} *,?/,"",value)
             curr_idx++
