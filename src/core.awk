@@ -17,6 +17,8 @@
             current_scope=gensub(/\s*$/, "", "g", a[1])
             # Replace dashes with underscores
             gsub(/[-]/, "_", current_scope)
+            # Replace dots with underscores
+            gsub(/[.]/, "_", current_scope)
             scopes[current_scope]++
         } else {
             print "[LINT]    Invalid header:    " $0 "" > "/dev/stderr"
