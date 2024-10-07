@@ -159,9 +159,6 @@
         struct_names[current_scope "_" variable ]=variable
     } else if ($0 ~ /^[^-A-Z_\[\]\$\\\/{}]+ *= *\[ *({ *("? *[^}A-Z\\\$#\]\[,]+ *"? *= *" *[^}A-Z\\\$#\[\],]+ *" *)(, *"? *[^}A-Z\\\$#\]\[,]+ *"? *= *" *[^}A-Z\\\$#\]\[,]+ *" *)* *})(, *{ *("? *[^}A-Z\\\$#\]\[,]+ *"? *= *" *[^}A-Z\\\$#\]\[,]+ *" *)(, *"? *[^}A-Z\\\$#\]\[,]+ *"? *= *" *[^}A-Z\\\$#\]\[,]+ *" *)* *})* *,? *\]$/) {
         # Check if line has a square bracket struct rightval
-        #print "[ERROR]    Array of structures are not currently supported: { "
-        #print "    " $0
-        #print "}"
 
         # Extract variable
         variable = gensub(/^ *"?([^\{\[="]+)"? *=.*$/, "\\1", "g", $0)
