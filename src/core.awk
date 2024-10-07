@@ -24,7 +24,7 @@
             print "[LINT]    Invalid header:    " $0 "" > "/dev/stderr"
             error_flag=1
         }
-    } else if ($0 ~ /^"?[^"=\[\]_\$\\\/{}]+"? *= *"[^\[\]\${}]+"$/) {
+    } else if ($0 ~ /^"?[^"=\[\]\$\\\/{}]+"? *= *"[^\[\]\${}]+"$/) {
         # Check if the line is a valid variable assignment
 
         variable = gensub(/^ *"?([^="]+)"? *=.*$/, "\\1", "g", $0)
@@ -51,7 +51,7 @@
         if (!(current_scope in scopes)) {
             scopes[current_scope]++
         }
-    } else if ($0 ~ /^[^-A-Z_\[\]\$\\\/{}]+ *= *{ *(([^-A-Z_\[\]\$\\\/{}]+) *= *\[ *(" *[^\]A-Z\\\$#\]\[,]+ *" *)(, *" *[^\]A-Z\\\$#\]\[,]+ *")* *,? *\] *)(, *([^-A-Z_\[\]\$\\\/{},]+) *= *\[ *(" *[^\]A-Z\\\$#\]\[,]+ *" *)(, *" *[^\]A-Z\\\$#\]\[,]+ *")* *,? *\] *)* *}$/) {
+    } else if ($0 ~ /^[^-_\[\]\$\\\/{}]+ *= *{ *(([^-_\[\]\$\\\/{}]+) *= *\[ *(" *[^\\\$#\]\[,]+ *" *)(, *" *[^\\\$#\]\[,]+ *")* *,? *\] *)(, *([^-_\[\]\$\\\/{},]+) *= *\[ *(" *[^\\\$#\]\[,]+ *" *)(, *" *[^\\\$#\]\[,]+ *")* *,? *\] *)* *}$/) {
         # Check if line has a curly bracket array rightval
         # Extract variable
         variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", $0)
@@ -76,7 +76,7 @@
         #struct_values[current_scope "_" variable]=value
         #struct_names[current_scope "_" variable ]=variable
 
-        while (match(value, /^ *,? *"?([^\]A-Z\\\$#\]\["]+)"? *= *\[ *([^\]A-Z\\\$#\]\[]+) *\] */, parts)) {
+        while (match(value, /^ *,? *"?([^\\\$#\]\["]+)"? *= *\[ *([^\\\$#\]\[]+) *\] */, parts)) {
             # Trim trailing whitespaces from variable and value
             gsub(/[ \t]+$/, "", parts[0])
             gsub(/[ \t]+$/, "", parts[1])
@@ -87,7 +87,7 @@
             #print "[LINT]    Parts[1]: { " parts[1] " }"
             # Extract val
             arrname = parts[1]
-            arrval = gensub(/^.*= *\[ *([^\[A-Z\\\$]+) *\]$/, "\\1", "g", parts[0])
+            arrval = gensub(/^.*= *\[ *([^\[\\\$]+) *\]$/, "\\1", "g", parts[0])
 
             # Replace dashes with underscores
             gsub(/[-]/, "_", arrname)
@@ -117,11 +117,11 @@
             sub(/^[^\]A-Z\\\$#\]\[]+ *= *\[ *[^\]A-Z\\\$#\]\[]+ *\] *,?/,"",value)
         }
 
-    } else if ($0 ~ /^[^-A-Z_\[\]\$\\\/{}]+ *= *{ *(" *[^}A-Z\\\$#\]\[]+ *" *= *" *[^}A-Z\\\$#\]\[,]+ *" *)(, *" *[^}A-Z\\\$#\]\[,]+ *" *= *" *[^}A-Z\\\$#\]\[,]+ *" *)* *}$/) {
+    } else if ($0 ~ /^[^-_\[\]\$\\\/{}]+ *= *{ *("? *[^}\\\$#\]\[]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)(, *"? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)* *}$/) {
         # Check if line has a curly bracket rightval
         # Extract variable
         variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", $0)
-        value = gensub(/^.*= *{ *([^}A-Z]+) *}$/, "\\1", "g", $0)
+        value = gensub(/^.*= *{ *([^}]+) *}$/, "\\1", "g", $0)
         # Replace dashes with underscores
         gsub(/[-]/, "_", variable)
         # Trim trailing whitespaces from variable and value
@@ -157,12 +157,12 @@
             struct_values[current_scope "_" variable "_" var]=val
         }
         struct_names[current_scope "_" variable ]=variable
-    } else if ($0 ~ /^[^-A-Z_\[\]\$\\\/{}]+ *= *\[ *({ *("? *[^}A-Z\\\$#\]\[,]+ *"? *= *" *[^}A-Z\\\$#\[\],]+ *" *)(, *"? *[^}A-Z\\\$#\]\[,]+ *"? *= *" *[^}A-Z\\\$#\]\[,]+ *" *)* *})(, *{ *("? *[^}A-Z\\\$#\]\[,]+ *"? *= *" *[^}A-Z\\\$#\]\[,]+ *" *)(, *"? *[^}A-Z\\\$#\]\[,]+ *"? *= *" *[^}A-Z\\\$#\]\[,]+ *" *)* *})* *,? *\]$/) {
+    } else if ($0 ~ /^[^-_\[\]\$\\\/{}]+ *= *\[ *({ *("? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\[\],]+ *"? *)(, *"? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)* *})(, *{ *("? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)(, *"? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)* *})* *,? *\]$/) {
         # Check if line has a square bracket struct rightval
 
         # Extract variable
         variable = gensub(/^ *"?([^\{\[="]+)"? *=.*$/, "\\1", "g", $0)
-        value = gensub(/^.*= *\[ *([^\]A-Z]+) *\] *$/, "\\1", "g", $0)
+        value = gensub(/^.*= *\[ *([^\]]+) *\] *$/, "\\1", "g", $0)
         # Replace dashes with underscores
         gsub(/[-]/, "_", variable)
         # Trim trailing whitespaces from variable and value
@@ -184,12 +184,12 @@
         #struct_names[current_scope "_" variable ]=variable
 
         curr_idx=0
-        while (match(value,/^ *({ *[^{}A-Z\\\$#\]\[]+ *} *,? *)+ *$/, parts)) {
-            current_decl = gensub(/^ *{ *([^{}A-Z\\\$#\]\[]+) *}.*$/, "\\1", 1, value)
+        while (match(value,/^ *({ *[^{}\\\$#\]\[]+ *} *,? *)+ *$/, parts)) {
+            current_decl = gensub(/^ *{ *([^{}\\\$#\]\[]+) *}.*$/, "\\1", 1, value)
 
             # Extract variable
             struct_variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", current_decl)
-            struct_value = gensub(/^.*= *{ *([^}A-Z]+) *}$/, "\\1", "g", current_decl)
+            struct_value = gensub(/^.*= *{ *([^}]+) *}$/, "\\1", "g", current_decl)
             # Replace dashes with underscores
             gsub(/[-]/, "_", struct_variable)
             # Trim trailing whitespaces from variable and value
@@ -226,7 +226,7 @@
             sub(/^ *{ *[^}A-Z\\\$#\]\[]+ *} *,?/,"",value)
             curr_idx++
         }
-    } else if ($0 ~ /^[^-A-Z_\[\]\$\\\/{}]+ *= *\[ *(" *[^\]\\\$#\]\[,]+ *" *)(, *" *[^\]\\\$#\]\[,]+ *")* *,? *\]$/) {
+    } else if ($0 ~ /^[^-_\[\]\$\\\/{}]+ *= *\[ *(" *[^\\\$#\]\[,]+ *" *)(, *" *[^\\\$#\]\[,]+ *")* *,? *\]$/) {
         # Check if line has a square bracket rightval
         # Extract variable
         variable = gensub(/^ *"?([^\[="]+)"? *=.*$/, "\\1", "g", $0)
