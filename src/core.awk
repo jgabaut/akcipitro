@@ -11,7 +11,17 @@
         next
     }
 
-    if ($0 ~ /^\s*\[[^A-Z\[\]\\\/\$]+\]\s*$/) {
+    banned = "$\"'\\\\"
+    ban_slash = "\\/"
+    scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]"banned""ban_slash"]+\\][[:space:]]*$"
+    var_rgx = "^\"?[^=\\[\\]{}"banned""ban_slash"]+\"? *= *\"[^\\[\\]{}"banned"]+\"$"
+    struct_arr_rgx = "^[^-_\\[\\]{}"banned""ban_slash"]+ *= *\\{ *(([^-_\\[\\]{}"banned""ban_slash"]+) *= *\\[ *(\" *[^#\\]\\[,"banned"]+ *\" *)(, *\" *[^#\\]\\[,"banned"]+ *\")* *,? *\\] *)(, *([^-_\\[\\]/{},"banned""ban_slash"]+) *= *\\[ *(\" *[^#\\]\\[,"banned"]+ *\" *)(, *\" *[^#\\]\\[,"banned"]+ *\")* *,? *\\] *)* *\\}$"
+    struct_rgx = "^[^-_\\[\\]/{}"banned""ban_slash"]+ *= *\\{ *(\"? *[^}#\\]\\["banned""ban_slash"]+ *\"? *= *\"? *[^}#\\]\\[,"banned"]+ *\"? *)(, *\"? *[^}#\\]\\[,"banned""ban_slash"]+ *\"? *= *\"? *[^}#\\]\\[,"banned"]+ *\"? *)* *\\}$"
+    arr_struct_rgx = "^[^-_\\[\\]{}"banned""ban_slash"]+ *= *\\[ *\\{ *(\"? *[^}#\\]\\[,"banned""ban_slash"]+ *\"? *= *\"? *[^}#\\[\\],"banned"]+ *\"? *)(, *\"? *[^}#\\]\\[,"banned""ban_slash"]+ *\"? *= *\"? *[^}#\\]\\[,"banned"]+ *\"? *)* \\} *(, *\\{ *(\"? *[^}#\\]\\[,"banned""ban_slash"]+ *\"? *= *\"? *[^}#\\[\\],"banned"]+ *\"? *)(, *\"? *[^}#\\]\\[,"banned""ban_slash"]+ *\"? *= *\"? *[^}#\\]\\[,"banned"]+ *\"? *)* \\})* *,? *\\]$"
+    arr_rgx = "^[^-_\\[\\]{}"banned""ban_slash"]+ *= *\\[ *(\" *[^#\\]\\[,"banned"]+ *\" *)(, *\" *[^#\\]\\[,"banned"]+ *\" )* *,? *\\]$"
+
+
+    if ($0 ~ scope_rgx) {
         # Extract and set the current scope
         if (match($0, /^\s*\[\s*([^A-Z\[\]]+)\s*\]\s*$/, a)) {
             current_scope=gensub(/\s*$/, "", "g", a[1])
@@ -24,7 +34,7 @@
             print "[LINT]    Invalid header:    " $0 "" > "/dev/stderr"
             error_flag=1
         }
-    } else if ($0 ~ /^"?[^"=\[\]\$\\\/{}]+"? *= *"[^\[\]\${}]+"$/) {
+    } else if ($0 ~ var_rgx) {
         # Check if the line is a valid variable assignment
 
         variable = gensub(/^ *"?([^="]+)"? *=.*$/, "\\1", "g", $0)
@@ -51,7 +61,7 @@
         if (!(current_scope in scopes)) {
             scopes[current_scope]++
         }
-    } else if ($0 ~ /^[^-_\[\]\$\\\/{}]+ *= *{ *(([^-_\[\]\$\\\/{}]+) *= *\[ *(" *[^\\\$#\]\[,]+ *" *)(, *" *[^\\\$#\]\[,]+ *")* *,? *\] *)(, *([^-_\[\]\$\\\/{},]+) *= *\[ *(" *[^\\\$#\]\[,]+ *" *)(, *" *[^\\\$#\]\[,]+ *")* *,? *\] *)* *}$/) {
+    } else if ($0 ~ struct_arr_rgx) {
         # Check if line has a curly bracket array rightval
         # Extract variable
         variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", $0)
@@ -117,7 +127,7 @@
             sub(/^[^\]A-Z\\\$#\]\[]+ *= *\[ *[^\]A-Z\\\$#\]\[]+ *\] *,?/,"",value)
         }
 
-    } else if ($0 ~ /^[^-_\[\]\$\\\/{}]+ *= *{ *("? *[^}\\\$#\]\[]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)(, *"? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)* *}$/) {
+    } else if ($0 ~ struct_rgx) {
         # Check if line has a curly bracket rightval
         # Extract variable
         variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", $0)
@@ -157,7 +167,7 @@
             struct_values[current_scope "_" variable "_" var]=val
         }
         struct_names[current_scope "_" variable ]=variable
-    } else if ($0 ~ /^[^-_\[\]\$\\\/{}]+ *= *\[ *({ *("? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\[\],]+ *"? *)(, *"? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)* *})(, *{ *("? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)(, *"? *[^}\\\$#\]\[,]+ *"? *= *"? *[^}\\\$#\]\[,]+ *"? *)* *})* *,? *\]$/) {
+    } else if ($0 ~ arr_struct_rgx) {
         # Check if line has a square bracket struct rightval
 
         # Extract variable
@@ -226,7 +236,7 @@
             sub(/^ *{ *[^}A-Z\\\$#\]\[]+ *} *,?/,"",value)
             curr_idx++
         }
-    } else if ($0 ~ /^[^-_\[\]\$\\\/{}]+ *= *\[ *(" *[^\\\$#\]\[,]+ *" *)(, *" *[^\\\$#\]\[,]+ *")* *,? *\]$/) {
+    } else if ($0 ~ arr_rgx) {
         # Check if line has a square bracket rightval
         # Extract variable
         variable = gensub(/^ *"?([^\[="]+)"? *=.*$/, "\\1", "g", $0)
