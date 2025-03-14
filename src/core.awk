@@ -233,7 +233,7 @@
             }
             arr_struct_names[current_scope "_" variable "_" curr_idx ]=variable
 
-            sub(/^ *{ *[^}A-Z\\\$#\]\[]+ *} *,?/,"",value)
+            sub(/^ *{ *[^}\\\$#\]\[]+ *} *,?/,"",value)
             curr_idx++
         }
     } else if ($0 ~ arr_rgx) {
