@@ -11,7 +11,7 @@
         next
     }
 
-    banned = "$\"'\\\\"
+    banned = "$\"'\''\\\\"
     ban_slash = "\\/"
     scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]" banned ban_slash "]+\\][[:space:]]*$"
     var_rgx = "^\"?[^=\\[\\]{}" banned ban_slash "]+\"? *= *\"[^\\[\\]{}" banned "]+\"$"
