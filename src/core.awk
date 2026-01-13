@@ -11,7 +11,7 @@
         next
     }
 
-    banned = "$\"'\''\\\\"
+    banned = "$\"\047\\\\"
     ban_slash = "\\/"
     scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]" banned ban_slash "]+\\][[:space:]]*$"
     var_rgx = "^\"?[^=\\[\\]{}" banned ban_slash "]+\"? *= *\"[^\\[\\]{}" banned "]+\"$"
@@ -148,23 +148,31 @@
         }
         split(value, struct_tokens, ",");
         for (struct_decl in struct_tokens) {
-            split(struct_tokens[struct_decl], parts, "=")
-            var=gensub(/^ *"?([^"]+)"? *$/, "\\1", "g", parts[1])
-            val=gensub(/^ *"?([^"]*)"? *$/, "\\1", "g", parts[2])
-            # Trim trailing whitespaces from variable and value
-            gsub(/[ \t]+$/, "", var)
-            gsub(/[ \t]+$/, "", val)
+            if (match(struct_tokens[struct_decl], /^[[:space:]]*([^=[:space:]]+)[[:space:]]*=[[:space:]]*(.*)$/, m)) {
+                var = m[1]
+                val = m[2]
 
-            # Check if left side contains disallowed characters
-            if (index(var, " ") > 0 || (index(var, "#") > 0 && index(var, "\"") == 0)) {
-                print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " var "" > "/dev/stderr"
+                var=gensub(/^ *"?([^"]+)"? *$/, "\\1", "g", var)
+                val=gensub(/^ *"?([^"]*)"? *$/, "\\1", "g", val)
+                # Trim trailing whitespaces from variable and value
+                gsub(/[ \t]+$/, "", var)
+                gsub(/[ \t]+$/, "", val)
+
+                # Check if left side contains disallowed characters
+                if (index(var, " ") > 0 || (index(var, "#") > 0 && index(var, "\"") == 0)) {
+                    print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " var "" > "/dev/stderr"
+                    error_flag=1
+                    next
+                }
+                if (!(current_scope in scopes)) {
+                    scopes[current_scope]++
+                }
+                struct_values[current_scope "_" variable "_" var]=val
+            } else {
+                print "[LEX]    Failed capture of struct_decl " struct_tokens[struct_decl] "" > "/dev/stderr"
                 error_flag=1
                 next
             }
-            if (!(current_scope in scopes)) {
-                scopes[current_scope]++
-            }
-            struct_values[current_scope "_" variable "_" var]=val
         }
         struct_names[current_scope "_" variable ]=variable
     } else if ($0 ~ arr_struct_rgx) {
@@ -213,23 +221,30 @@
             }
             split(struct_value, struct_tokens, ",");
             for (struct_decl in struct_tokens) {
-                split(struct_tokens[struct_decl], struct_parts, "=")
-                var=gensub(/^ *"?([^"]+)"? *$/, "\\1", "g", struct_parts[1])
-                val=gensub(/^ *"?([^"]*)"? *$/, "\\1", "g", struct_parts[2])
-                # Trim trailing whitespaces from variable and value
-                gsub(/[ \t]+$/, "", var)
-                gsub(/[ \t]+$/, "", val)
+                if (match(struct_tokens[struct_decl], /^[[:space:]]*([^=[:space:]]+)[[:space:]]*=[[:space:]]*(.*)$/, m)) {
+                    var = m[1]
+                    val = m[2]
+                    var=gensub(/^ *"?([^"]+)"? *$/, "\\1", "g", var)
+                    val=gensub(/^ *"?([^"]*)"? *$/, "\\1", "g", val)
+                    # Trim trailing whitespaces from variable and value
+                    gsub(/[ \t]+$/, "", var)
+                    gsub(/[ \t]+$/, "", val)
 
-                # Check if left side contains disallowed characters
-                if (index(var, " ") > 0 || (index(var, "#") > 0 && index(var, "\"") == 0)) {
-                    print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " var "" > "/dev/stderr"
+                    # Check if left side contains disallowed characters
+                    if (index(var, " ") > 0 || (index(var, "#") > 0 && index(var, "\"") == 0)) {
+                        print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " var "" > "/dev/stderr"
+                        error_flag=1
+                        next
+                    }
+                    if (!(current_scope in scopes)) {
+                        scopes[current_scope]++
+                    }
+                    arr_struct_values[current_scope "_" variable "_" curr_idx "[" var "]"]=val
+                } else {
+                    print "[LEX]    Failed capture of struct_decl " struct_tokens[struct_decl] "" > "/dev/stderr"
                     error_flag=1
                     next
                 }
-                if (!(current_scope in scopes)) {
-                    scopes[current_scope]++
-                }
-                arr_struct_values[current_scope "_" variable "_" curr_idx "[" var "]"]=val
             }
             arr_struct_names[current_scope "_" variable "_" curr_idx ]=variable
 
