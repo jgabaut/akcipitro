@@ -1,0 +1,28 @@
+int_zero = 0
+int_pos  = 42
+int_neg  = -7
+int_big  = 1_000_000
+
+float_simple = 3.14
+float_int    = 1.0
+float_exp    = 1.5e3
+float_expneg = -2.5E-2
+float_frac   = .75
+
+flag_true  = true
+flag_false = false
+
+str_space  = "hello world"
+str_symbol = ">=0.3"
+
+dt_offset_utc = 1979-05-27T07:32:00Z
+dt_offset     = 1979-05-27T00:32:00-07:00
+dt_frac       = 1979-05-27T00:32:00.999999-07:00
+dt_space      = 1979-05-27 07:32:00Z
+
+dt_local      = 1979-05-27T07:32:00
+
+date_only     = 1979-05-27
+
+time_only     = 07:32:00
+time_frac     = 07:32:00.123

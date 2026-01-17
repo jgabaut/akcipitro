@@ -1,0 +1,22 @@
+ints    = [1, 2, 3, 4]
+floats  = [0.1, 1.5, -2.0]
+bools   = [true, false, true]
+strings = ["a", "b", "c"]
+dates   = [1979-05-27, 2024-11-01]
+times   = [07:32:00, 23:59:59]
+
+points = [
+  { x = 0, y = 0 },
+  { x = 1, y = 1 },
+  { x = 2, y = 3 }
+]
+
+servers = [
+  { host = "a.example.com", port = 80 },
+  { host = "b.example.com", port = 443 }
+]
+
+events = [
+  { name = "start", time = 07:00:00 },
+  { name = "stop",  time = 18:00:00 }
+]

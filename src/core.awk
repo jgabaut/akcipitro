@@ -11,15 +11,35 @@
         next
     }
 
+
     banned = "$\"\047\\\\"
     ban_slash = "\\/"
-    scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]" banned ban_slash "]+\\][[:space:]]*$"
-    var_rgx = "^\"?[^=\\[\\]{}" banned ban_slash "]+\"? *= *\"[^\\[\\]{}" banned "]+\"$"
-    struct_arr_rgx = "^[^-_\\[\\]{}" banned ban_slash "]+ *= *\\{ *(([^-_\\[\\]{}" banned ban_slash "]+) *= *\\[ *(\" *[^#\\]\\[," banned "]+ *\" *)(, *\" *[^#\\]\\[," banned "]+ *\")* *,? *\\] *)(, *([^-_\\[\\]/{}," banned ban_slash "]+) *= *\\[ *(\" *[^#\\]\\[," banned "]+ *\" *)(, *\" *[^#\\]\\[," banned "]+ *\")* *,? *\\] *)* *\\}$"
-    struct_rgx = "^[^-_\\[\\]/{}" banned ban_slash "]+ *= *\\{ *(\"? *[^}#\\]\\[" banned ban_slash "]+ *\"? *= *\"? *[^}#\\]\\[," banned "]+ *\"? *)(, *\"? *[^}#\\]\\[," banned ban_slash "]+ *\"? *= *\"? *[^}#\\]\\[," banned "]+ *\"? *)* *\\}$"
-    arr_struct_rgx = "^[^-_\\[\\]{}" banned ban_slash "]+ *= *\\[ *\\{ *(\"? *[^}#\\]\\[," banned ban_slash "]+ *\"? *= *\"? *[^}#\\[\\]," banned "]+ *\"? *)(, *\"? *[^}#\\]\\[," banned ban_slash "]+ *\"? *= *\"? *[^}#\\]\\[," banned "]+ *\"? *)* \\} *(, *\\{ *(\"? *[^}#\\]\\[," banned ban_slash "]+ *\"? *= *\"? *[^}#\\[\\]," banned "]+ *\"? *)(, *\"? *[^}#\\]\\[," banned ban_slash "]+ *\"? *= *\"? *[^}#\\]\\[," banned "]+ *\"? *)* \\})* *,? *\\]$"
-    arr_rgx = "^[^-_\\[\\]{}" banned ban_slash "]+ *= *\\[ *(\" *[^#\\]\\[," banned "]+ *\" *)(, *\" *[^#\\]\\[," banned "]+ *\" *)* *,? *\\]$"
-
+    scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]=" banned ban_slash "]+\\][[:space:]]*$"
+    int_rgx = "[+-]?[0-9]+(_[0-9]+)*"
+    float_rgx = "[+-]?([[:digit:]]+(\\.[[:digit:]]*)?|\\.[[:digit:]]+)([eE][+-]?[[:digit:]]+)?"
+    year_rgx = "[0-9]{4}"
+    month_rgx = "(0[1-9]|1[0-2])"
+    day_rgx = "(0[1-9]|[12][0-9]|3[01])"
+    date_rgx = year_rgx "-" month_rgx "-" day_rgx
+    hour_rgx = "([01][0-9]|2[0-3])"
+    minute_rgx = "[0-5][0-9]"
+    second_rgx = "[0-5][0-9]"
+    second_frac_rgx = "(\\.[0-9]+)?"
+    time_rgx = hour_rgx ":" minute_rgx ":" second_rgx second_frac_rgx
+    time_offset_rgx = "(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])"
+    odt_rgx = date_rgx "[T ]" time_rgx time_offset_rgx
+    ldt_rgx = date_rgx "[T ]" time_rgx
+    ld_rgx = date_rgx
+    lt_rgx = time_rgx
+    datetime_rgx = "(" odt_rgx "|" ldt_rgx "|" ld_rgx "|" lt_rgx ")"
+    var_lhs_rgx = "(\" *[^-}#\\]\\[=" banned ban_slash "]+ *\"|[^-}#\\]\\[=" banned ban_slash "]+)"
+    var_rhs_rgx = "(\" *[^}\\]\\[" banned "]+ *\"|true|false|" int_rgx "|" float_rgx "|" datetime_rgx ")"
+    var_rgx = "^" var_lhs_rgx " *= *" var_rhs_rgx "$"
+    struct_rgx = "^" var_lhs_rgx " *= *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* *\\}$"
+    arr_val_rgx = " *((\" *[^}\\]\\[," banned "]+ *\" *)(, *\" *[^}\\]\\[," banned "]+ *\" *)*|( *(true|false) *)(, *(true|false) *)*|( *" int_rgx " *)(, *" int_rgx " *)*|( *" float_rgx " *)(, *" float_rgx " *)*|( *" datetime_rgx " *)(, *" datetime_rgx " *)*) *,? *"
+    arr_rgx = "^" var_lhs_rgx " *= *\\[" arr_val_rgx "\\]$"
+    struct_arr_rgx = "^" var_lhs_rgx " *= *\\{ *(" var_lhs_rgx " *= *\\[" arr_val_rgx "\\] *)(, *" var_lhs_rgx " *= *\\[" arr_val_rgx "\\] *)* *\\}$"
+    arr_struct_rgx = "^" var_lhs_rgx " *= *\\[ *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* \\} *(, *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* \\})* *,? *\\]$"
 
     if ($0 ~ scope_rgx) {
         # Extract and set the current scope
@@ -65,7 +85,7 @@
         # Check if line has a curly bracket array rightval
         # Extract variable
         variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", $0)
-        value = gensub(/^.*= *{ *([^}A-Z]+) *}$/, "\\1", "g", $0)
+        value = gensub(/^.*= *{ *([^}]+) *}$/, "\\1", "g", $0)
         # Replace dashes with underscores
         gsub(/[-]/, "_", variable)
         # Trim trailing whitespaces from variable and value
