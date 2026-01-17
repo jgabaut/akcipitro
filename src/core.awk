@@ -33,10 +33,10 @@
     lt_rgx = time_rgx
     datetime_rgx = "(" odt_rgx "|" ldt_rgx "|" ld_rgx "|" lt_rgx ")"
     var_lhs_rgx = "(\" *[^-}#\\]\\[=" banned ban_slash "]+ *\"|[^-}#\\]\\[=" banned ban_slash "]+)"
-    var_rhs_rgx = "(\" *[^}\\]\\[" banned "]+ *\"|true|false|" int_rgx "|" float_rgx "|" datetime_rgx ")"
+    var_rhs_rgx = "(\" *[^}\\]\\[" banned "]* *\"|true|false|" int_rgx "|" float_rgx "|" datetime_rgx ")"
     var_rgx = "^" var_lhs_rgx " *= *" var_rhs_rgx "$"
     struct_rgx = "^" var_lhs_rgx " *= *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* *\\}$"
-    arr_val_rgx = " *((\" *[^}\\]\\[," banned "]+ *\" *)(, *\" *[^}\\]\\[," banned "]+ *\" *)*|( *(true|false) *)(, *(true|false) *)*|( *" int_rgx " *)(, *" int_rgx " *)*|( *" float_rgx " *)(, *" float_rgx " *)*|( *" datetime_rgx " *)(, *" datetime_rgx " *)*) *,? *"
+    arr_val_rgx = " *((\" *[^}\\]\\[," banned "]* *\" *)(, *\" *[^}\\]\\[," banned "]* *\" *)*|( *(true|false) *)(, *(true|false) *)*|( *" int_rgx " *)(, *" int_rgx " *)*|( *" float_rgx " *)(, *" float_rgx " *)*|( *" datetime_rgx " *)(, *" datetime_rgx " *)*) *,? *"
     arr_rgx = "^" var_lhs_rgx " *= *\\[" arr_val_rgx "\\]$"
     struct_arr_rgx = "^" var_lhs_rgx " *= *\\{ *(" var_lhs_rgx " *= *\\[" arr_val_rgx "\\] *)(, *" var_lhs_rgx " *= *\\[" arr_val_rgx "\\] *)* *\\}$"
     arr_struct_rgx = "^" var_lhs_rgx " *= *\\[ *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* \\} *(, *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* \\})* *,? *\\]$"
@@ -58,7 +58,7 @@
         # Check if the line is a valid variable assignment
 
         variable = gensub(/^ *"?([^="]+)"? *=.*$/, "\\1", "g", $0)
-        value = gensub(/^.*= *"?([^"]+)"? *$/, "\\1", "g", $0)
+        value = gensub(/^.*= *"?([^"]*)"? *$/, "\\1", "g", $0)
 
         # Replace dashes with underscores
         gsub(/[-]/, "_", variable)
@@ -131,14 +131,12 @@
             arr_idx=0;
             split(arrval, arr_tokens, ",");
             for (arr_value in arr_tokens) {
-                val = gensub(/^ *"([^"=,\\\]]+)" *$/, "\\1", "g", arr_tokens[arr_value])
-                if (val != "") {
-                    struct_array_values[current_scope "_" variable "_" arrname "[" arr_idx "]" ]=val
-                    if (!(current_scope in scopes)) {
-                        scopes[current_scope]++
-                    }
-                    arr_idx++
+                val = gensub(/^ *"([^"=,\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
+                struct_array_values[current_scope "_" variable "_" arrname "[" arr_idx "]" ]=val
+                if (!(current_scope in scopes)) {
+                    scopes[current_scope]++
                 }
+                arr_idx++
             }
             if (arr_idx > 0) {
                 struct_array_names[current_scope "_" variable "_" arrname ]=arrname
@@ -298,14 +296,12 @@
         arr_idx=0;
         split(value, arr_tokens, ",");
         for (arr_value in arr_tokens) {
-            val = gensub(/^ *"([^",\\\]]+)" *$/, "\\1", "g", arr_tokens[arr_value])
-            if (val != "") {
-                array_values[current_scope "_" variable "[" arr_idx "]" ]=val
-                if (!(current_scope in scopes)) {
-                    scopes[current_scope]++
-                }
-                arr_idx++
+            val = gensub(/^ *"([^",\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
+            array_values[current_scope "_" variable "[" arr_idx "]" ]=val
+            if (!(current_scope in scopes)) {
+                scopes[current_scope]++
             }
+            arr_idx++
         }
         if (arr_idx > 0) {
             array_names[current_scope "_" variable ]=variable
