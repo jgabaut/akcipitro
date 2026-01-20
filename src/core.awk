@@ -45,6 +45,11 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
         next
     }
 
+    if ($0 ~ "<\\(") {
+        print "[LINT]    Command substitution detected:    " $0 "" > "/dev/stderr"
+        error_flag=1
+        next
+    }
 
     banned = "$\"\047\\\\"
     ban_slash = "\\/"
@@ -87,6 +92,7 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
         } else {
             print "[LINT]    Invalid header:    " $0 "" > "/dev/stderr"
             error_flag=1
+            next
         }
     } else if ($0 ~ var_rgx) {
         # Check if the line is a valid variable assignment
