@@ -20,3 +20,8 @@ events = [
   { name = "start", time = 07:00:00 },
   { name = "stop",  time = 18:00:00 }
 ]
+
+deep = [
+  { foo = [ 123, 124 ] },
+  { foo = [ 420, 69, 1337 ], bar = "foo" }
+]
