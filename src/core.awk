@@ -1,4 +1,38 @@
 #!/usr/bin/awk -f
+function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
+    n = 0
+    buf = ""
+    depth_sq = depth_cu = 0
+    in_str = 0
+
+    for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+
+        if (c == "\"" && substr(s, i-1, 1) != "\\")
+            in_str = !in_str
+
+        if (!in_str) {
+            if (c == "[") depth_sq++
+            else if (c == "]") depth_sq--
+            else if (c == "{") depth_cu++
+            else if (c == "}") depth_cu--
+        }
+
+        if (c == "," && !in_str && depth_sq == 0 && depth_cu == 0) {
+            out[++n] = buf
+            buf = ""
+            continue
+        }
+
+        buf = buf c
+    }
+
+    if (buf != "")
+        out[++n] = buf
+
+    return n
+}
+
 {
     # Remove leading and trailing whitespaces
     gsub(/^[ \t]+|[ \t]+$/, "")
@@ -11,6 +45,11 @@
         next
     }
 
+    if ($0 ~ "<\\(") {
+        print "[LINT]    Command substitution detected:    " $0 "" > "/dev/stderr"
+        error_flag=1
+        next
+    }
 
     banned = "$\"\047\\\\"
     ban_slash = "\\/"
@@ -35,11 +74,11 @@
     var_lhs_rgx = "(\" *[^-}#\\]\\[=" banned ban_slash "]+ *\"|[^-}#\\]\\[=" banned ban_slash "]+)"
     var_rhs_rgx = "(\" *[^}\\]\\[" banned "]* *\"|true|false|" int_rgx "|" float_rgx "|" datetime_rgx ")"
     var_rgx = "^" var_lhs_rgx " *= *" var_rhs_rgx "$"
-    struct_rgx = "^" var_lhs_rgx " *= *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* *\\}$"
     arr_val_rgx = " *((\" *[^}\\]\\[," banned "]* *\" *)(, *\" *[^}\\]\\[," banned "]* *\" *)*|( *(true|false) *)(, *(true|false) *)*|( *" int_rgx " *)(, *" int_rgx " *)*|( *" float_rgx " *)(, *" float_rgx " *)*|( *" datetime_rgx " *)(, *" datetime_rgx " *)*) *,? *"
     arr_rgx = "^" var_lhs_rgx " *= *\\[" arr_val_rgx "\\]$"
-    struct_arr_rgx = "^" var_lhs_rgx " *= *\\{ *(" var_lhs_rgx " *= *\\[" arr_val_rgx "\\] *)(, *" var_lhs_rgx " *= *\\[" arr_val_rgx "\\] *)* *\\}$"
-    arr_struct_rgx = "^" var_lhs_rgx " *= *\\[ *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* \\} *(, *\\{ *(" var_lhs_rgx " *= *" var_rhs_rgx " *)(, *" var_lhs_rgx " *= *" var_rhs_rgx " *)* \\})* *,? *\\]$"
+    struct_val_rgx = " *(" var_lhs_rgx " *= *(" var_rhs_rgx "|\\[" arr_val_rgx "\\]) *)(, *" var_lhs_rgx " *= *(" var_rhs_rgx "|\\[" arr_val_rgx "\\]) *)* *"
+    struct_rgx = "^" var_lhs_rgx " *= *\\{" struct_val_rgx "\\}$"
+    arr_struct_rgx = "^" var_lhs_rgx " *= *\\[ *\\{" struct_val_rgx "\\} *(, *\\{" struct_val_rgx "\\})* *,? *\\]$"
 
     if ($0 ~ scope_rgx) {
         # Extract and set the current scope
@@ -53,6 +92,7 @@
         } else {
             print "[LINT]    Invalid header:    " $0 "" > "/dev/stderr"
             error_flag=1
+            next
         }
     } else if ($0 ~ var_rgx) {
         # Check if the line is a valid variable assignment
@@ -81,70 +121,6 @@
         if (!(current_scope in scopes)) {
             scopes[current_scope]++
         }
-    } else if ($0 ~ struct_arr_rgx) {
-        # Check if line has a curly bracket array rightval
-        # Extract variable
-        variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", $0)
-        value = gensub(/^.*= *{ *([^}]+) *}$/, "\\1", "g", $0)
-        # Replace dashes with underscores
-        gsub(/[-]/, "_", variable)
-        # Trim trailing whitespaces from variable and value
-        gsub(/[ \t]+$/, "", variable)
-        gsub(/[ \t]+$/, "", value)
-
-        # Check if left side contains disallowed characters
-        if (index(variable, " ") > 0 || (index(variable, "#") > 0 && index(variable, "\"") == 0)) {
-            print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " variable "" > "/dev/stderr"
-            error_flag=1
-            next
-        }
-
-        if (current_scope == "main") {
-            variable = "main_" variable
-        }
-
-        #struct_values[current_scope "_" variable]=value
-        #struct_names[current_scope "_" variable ]=variable
-
-        while (match(value, /^ *,? *"?([^\\\$#\]\["]+)"? *= *\[ *([^\\\$#\]\[]+) *\] */, parts)) {
-            # Trim trailing whitespaces from variable and value
-            gsub(/[ \t]+$/, "", parts[0])
-            gsub(/[ \t]+$/, "", parts[1])
-            # Trim leading whitespaces from variable and value
-            gsub(/^[ \t]+/, "", parts[0])
-            gsub(/^[ \t]+/, "", parts[1])
-            #print "[LINT]    Parts[0]: { " parts[0] " }"
-            #print "[LINT]    Parts[1]: { " parts[1] " }"
-            # Extract val
-            arrname = parts[1]
-            arrval = gensub(/^.*= *\[ *([^\[\\\$]+) *\]$/, "\\1", "g", parts[0])
-
-            # Replace dashes with underscores
-            gsub(/[-]/, "_", arrname)
-            # Trim trailing whitespaces from arrname, arrval
-            gsub(/[ \t]+$/, "", arrname)
-            gsub(/[ \t]+$/, "", arrval)
-
-            #print "[LINT]    Arrname: { " arrname " }"
-            #print "[LINT]    Arrval: { " arrval " }"
-
-            arr_idx=0;
-            split(arrval, arr_tokens, ",");
-            for (arr_value in arr_tokens) {
-                val = gensub(/^ *"([^"=,\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
-                struct_array_values[current_scope "_" variable "_" arrname "[" arr_idx "]" ]=val
-                if (!(current_scope in scopes)) {
-                    scopes[current_scope]++
-                }
-                arr_idx++
-            }
-            if (arr_idx > 0) {
-                struct_array_names[current_scope "_" variable "_" arrname ]=arrname
-            }
-
-            sub(/^[^\]A-Z\\\$#\]\[]+ *= *\[ *[^\]A-Z\\\$#\]\[]+ *\] *,?/,"",value)
-        }
-
     } else if ($0 ~ struct_rgx) {
         # Check if line has a curly bracket rightval
         # Extract variable
@@ -164,28 +140,46 @@
         if (current_scope == "main") {
             variable = "main_" variable
         }
-        split(value, struct_tokens, ",");
+        #split(value, struct_tokens, ",");
+        delete struct_tokens
+        n = split_top_level(value, struct_tokens)
         for (struct_decl in struct_tokens) {
             if (match(struct_tokens[struct_decl], /^[[:space:]]*([^=[:space:]]+)[[:space:]]*=[[:space:]]*(.*)$/, m)) {
                 var = m[1]
                 val = m[2]
 
                 var=gensub(/^ *"?([^"]+)"? *$/, "\\1", "g", var)
-                val=gensub(/^ *"?([^"]*)"? *$/, "\\1", "g", val)
-                # Trim trailing whitespaces from variable and value
-                gsub(/[ \t]+$/, "", var)
-                gsub(/[ \t]+$/, "", val)
+                if(match(val, " *\\[(" arr_val_rgx ")\\] *$", m2)) {
+                    arr_idx=0;
+                    split(m2[1], arr_tokens, ",");
+                    for (arr_value in arr_tokens) {
+                        m2[1] = gensub(/^ *"([^"=,\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
+                        struct_array_values[current_scope "_" variable "_" var "[" arr_idx "]" ]=m2[1]
+                        if (!(current_scope in scopes)) {
+                            scopes[current_scope]++
+                        }
+                        arr_idx++
+                    }
+                    if (arr_idx > 0) {
+                        struct_array_names[current_scope "_" variable "_" var ]=var
+                    }
+                } else {
+                    val=gensub(/^ *"?([^"]*)"? *$/, "\\1", "g", val)
+                    # Trim trailing whitespaces from variable and value
+                    gsub(/[ \t]+$/, "", var)
+                    gsub(/[ \t]+$/, "", val)
 
-                # Check if left side contains disallowed characters
-                if (index(var, " ") > 0 || (index(var, "#") > 0 && index(var, "\"") == 0)) {
-                    print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " var "" > "/dev/stderr"
-                    error_flag=1
-                    next
+                    # Check if left side contains disallowed characters
+                    if (index(var, " ") > 0 || (index(var, "#") > 0 && index(var, "\"") == 0)) {
+                        print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " var "" > "/dev/stderr"
+                        error_flag=1
+                        next
+                    }
+                    if (!(current_scope in scopes)) {
+                        scopes[current_scope]++
+                    }
+                    struct_values[current_scope "_" variable "_" var]=val
                 }
-                if (!(current_scope in scopes)) {
-                    scopes[current_scope]++
-                }
-                struct_values[current_scope "_" variable "_" var]=val
             } else {
                 print "[LEX]    Failed capture of struct_decl " struct_tokens[struct_decl] "" > "/dev/stderr"
                 error_flag=1
@@ -198,7 +192,10 @@
 
         # Extract variable
         variable = gensub(/^ *"?([^\{\[="]+)"? *=.*$/, "\\1", "g", $0)
-        value = gensub(/^.*= *\[ *([^\]]+) *\] *$/, "\\1", "g", $0)
+        value = $0
+        sub(/^[^[]*\[/, "", value)   # remove up to first [
+        sub(/\][^]]*$/, "", value)   # remove from last ]
+
         # Replace dashes with underscores
         gsub(/[-]/, "_", variable)
         # Trim trailing whitespaces from variable and value
@@ -220,8 +217,8 @@
         #struct_names[current_scope "_" variable ]=variable
 
         curr_idx=0
-        while (match(value,/^ *({ *[^{}\\\$#\]\[]+ *} *,? *)+ *$/, parts)) {
-            current_decl = gensub(/^ *{ *([^{}\\\$#\]\[]+) *}.*$/, "\\1", 1, value)
+        while (match(value,/^ *({ *[^{}\\\$#]+ *} *,? *)+ *$/, parts)) {
+            current_decl = gensub(/^ *{ *([^{}\\\$#]+) *}.*$/, "\\1", 1, value)
 
             # Extract variable
             struct_variable = gensub(/^ *"?([^{="]+)"? *=.*$/, "\\1", "g", current_decl)
@@ -237,27 +234,45 @@
                 error_flag=1
                 next
             }
-            split(struct_value, struct_tokens, ",");
+            delete struct_tokens
+            n = split_top_level(current_decl, struct_tokens)
             for (struct_decl in struct_tokens) {
                 if (match(struct_tokens[struct_decl], /^[[:space:]]*([^=[:space:]]+)[[:space:]]*=[[:space:]]*(.*)$/, m)) {
                     var = m[1]
                     val = m[2]
-                    var=gensub(/^ *"?([^"]+)"? *$/, "\\1", "g", var)
-                    val=gensub(/^ *"?([^"]*)"? *$/, "\\1", "g", val)
-                    # Trim trailing whitespaces from variable and value
-                    gsub(/[ \t]+$/, "", var)
-                    gsub(/[ \t]+$/, "", val)
+                    var=gensub(/^ *"?([^}]+)"? *$/, "\\1", "g", var)
+                    if(match(val, " *\\[(" arr_val_rgx ")\\] *$", m2)) {
+                        arr_idx=0;
+                        split(m2[1], arr_tokens, ",");
+                        for (arr_value in arr_tokens) {
+                            m2[1] = gensub(/^ *"([^"=,\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
+                            arr_struct_values[current_scope "_" variable "_" curr_idx "[" var "_" arr_idx "]" ]=m2[1]
+                            if (!(current_scope in scopes)) {
+                                scopes[current_scope]++
+                            }
+                            arr_idx++
+                        }
+                        if (arr_idx > 0) {
+                            arr_struct_array_names[current_scope "_" variable "_" curr_idx "_" var ]=var
+                            arr_struct_array_lengths[current_scope "_" variable "_" curr_idx "_" var ]=arr_idx
+                        }
+                    } else {
+                        val=gensub(/^ *"?([^"]*)"? *$/, "\\1", "g", val)
+                        # Trim trailing whitespaces from variable and value
+                        gsub(/[ \t]+$/, "", var)
+                        gsub(/[ \t]+$/, "", val)
 
-                    # Check if left side contains disallowed characters
-                    if (index(var, " ") > 0 || (index(var, "#") > 0 && index(var, "\"") == 0)) {
-                        print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " var "" > "/dev/stderr"
-                        error_flag=1
-                        next
+                        # Check if left side contains disallowed characters
+                        if (index(var, " ") > 0 || (index(var, "#") > 0 && index(var, "\"") == 0)) {
+                            print "[LINT]    Invalid left side (contains spaces or disallowed characters):    " var "" > "/dev/stderr"
+                            error_flag=1
+                            next
+                        }
+                        if (!(current_scope in scopes)) {
+                            scopes[current_scope]++
+                        }
+                        arr_struct_values[current_scope "_" variable "_" curr_idx "[" var "]"]=val
                     }
-                    if (!(current_scope in scopes)) {
-                        scopes[current_scope]++
-                    }
-                    arr_struct_values[current_scope "_" variable "_" curr_idx "[" var "]"]=val
                 } else {
                     print "[LEX]    Failed capture of struct_decl " struct_tokens[struct_decl] "" > "/dev/stderr"
                     error_flag=1
@@ -266,7 +281,7 @@
             }
             arr_struct_names[current_scope "_" variable "_" curr_idx ]=variable
 
-            sub(/^ *{ *[^}\\\$#\]\[]+ *} *,?/,"",value)
+            sub(/^ *{ *[^}\\\$#]+ *} *,?/,"",value)
             curr_idx++
         }
     } else if ($0 ~ arr_rgx) {
@@ -368,6 +383,11 @@
             for (arr_struct_value in arr_struct_values) {
                 if (index(arr_struct_value, scope "_") == 1 || (scope == "main" && index(arr_struct_value, "main_") == 1)) {
                     print "In-Arr Structvalue: " arr_struct_value ", Value: " arr_struct_values[arr_struct_value]
+                }
+            }
+            for (arr_struct_arr_name in arr_struct_array_names) {
+                if (index(arr_struct_arr_name, scope "_") == 1 || (scope == "main" && index(arr_struct_arr_name, "main_") == 1)) {
+                    print "In-Arr Struct Array: " arr_struct_arr_name ", Name: " arr_struct_array_names[arr_struct_arr_name] ", Len: " arr_struct_array_lengths[arr_struct_arr_name]
                 }
             }
             print "------------------------"
