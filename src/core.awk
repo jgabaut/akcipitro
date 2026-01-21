@@ -193,8 +193,8 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
         # Extract variable
         variable = gensub(/^ *"?([^\{\[="]+)"? *=.*$/, "\\1", "g", $0)
         value = $0
-        sub(/^[^[]*\[/, "", value)   # remove up to first '['
-        sub(/\][^]]*$/, "", value)   # remove from last ']'
+        sub(/^[^[]*\[/, "", value)   # remove up to first [
+        sub(/\][^]]*$/, "", value)   # remove from last ]
 
         # Replace dashes with underscores
         gsub(/[-]/, "_", variable)
