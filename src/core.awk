@@ -379,20 +379,24 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
                 if (index(arr_struct_name, scope "_") == 1 || (scope == "main" && index(arr_struct_name, "main_") == 1)) {
                     print "In-Arr Struct: " arr_struct_name ", Name: " arr_struct_names[arr_struct_name]
                 }
-            }
-            for (arr_struct_value in arr_struct_values) {
-                if (index(arr_struct_value, scope "_") == 1 || (scope == "main" && index(arr_struct_value, "main_") == 1)) {
-                    print "In-Arr Structvalue: " arr_struct_value ", Value: " arr_struct_values[arr_struct_value]
+                idx = 0
+                if (match(arr_struct_name, /_([0-9]+)$/, m)) {
+                    idx = m[1]
                 }
-            }
-            for (arr_struct_arr_value in arr_struct_array_values) {
-                if (index(arr_struct_value, scope "_") == 1 || (scope == "main" && index(arr_struct_value, "main_") == 1)) {
-                    print "In-Arr Struct Arrvalue: " arr_struct_arr_value ", Value: " arr_struct_array_values[arr_struct_arr_value]
+                for (arr_struct_value in arr_struct_values) {
+                    if (index(arr_struct_value, scope "_" arr_struct_names[arr_struct_name] "_" idx) == 1 || (scope == "main" && index(arr_struct_value, "main_" arr_struct_names[arr_struct_name] "_" idx) == 1)) {
+                        print "In-Arr Structvalue: " arr_struct_value ", Value: " arr_struct_values[arr_struct_value]
+                    }
                 }
-            }
-            for (arr_struct_arr_name in arr_struct_array_names) {
-                if (index(arr_struct_arr_name, scope "_") == 1 || (scope == "main" && index(arr_struct_arr_name, "main_") == 1)) {
-                    print "In-Arr Struct Array: " arr_struct_arr_name ", Name: " arr_struct_array_names[arr_struct_arr_name] ", Len: " arr_struct_array_lengths[arr_struct_arr_name]
+                for (arr_struct_arr_name in arr_struct_array_names) {
+                    if (index(arr_struct_arr_name, scope "_" arr_struct_names[arr_struct_name] "_" idx) == 1 || (scope == "main" && index(arr_struct_arr_name, "main_" arr_struct_names[arr_struct_name] "_" idx) == 1)) {
+                        print "In-Arr Struct Array: " arr_struct_arr_name ", Name: " arr_struct_array_names[arr_struct_arr_name] ", Len: " arr_struct_array_lengths[arr_struct_arr_name]
+                        for (arr_struct_arr_value in arr_struct_array_values) {
+                            if (index(arr_struct_arr_value, scope "_" arr_struct_names[arr_struct_name] "_" idx "[" arr_struct_array_names[arr_struct_arr_name]) == 1 || (scope == "main" && index(arr_struct_arr_value, "main_" arr_struct_names[arr_struct_name] "_" idx "[" arr_struct_array_names[arr_struct_arr_name]) == 1)) {
+                                print "In-Arr Struct Arrvalue: " arr_struct_arr_value ", Value: " arr_struct_array_values[arr_struct_arr_value]
+                            }
+                        }
+                    }
                 }
             }
             print "------------------------"
