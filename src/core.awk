@@ -246,7 +246,7 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
                         split(m2[1], arr_tokens, ",");
                         for (arr_value in arr_tokens) {
                             m2[1] = gensub(/^ *"([^"=,\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
-                            arr_struct_values[current_scope "_" variable "_" curr_idx "[" var "_" arr_idx "]" ]=m2[1]
+                            arr_struct_array_values[current_scope "_" variable "_" curr_idx "[" var "_" arr_idx "]" ]=m2[1]
                             if (!(current_scope in scopes)) {
                                 scopes[current_scope]++
                             }
@@ -383,6 +383,11 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
             for (arr_struct_value in arr_struct_values) {
                 if (index(arr_struct_value, scope "_") == 1 || (scope == "main" && index(arr_struct_value, "main_") == 1)) {
                     print "In-Arr Structvalue: " arr_struct_value ", Value: " arr_struct_values[arr_struct_value]
+                }
+            }
+            for (arr_struct_arr_value in arr_struct_array_values) {
+                if (index(arr_struct_value, scope "_") == 1 || (scope == "main" && index(arr_struct_value, "main_") == 1)) {
+                    print "In-Arr Struct Arrvalue: " arr_struct_arr_value ", Value: " arr_struct_array_values[arr_struct_arr_value]
                 }
             }
             for (arr_struct_arr_name in arr_struct_array_names) {
