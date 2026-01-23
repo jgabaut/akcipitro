@@ -363,16 +363,16 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
                             print "Structvalue: " struct_value ", Value: " struct_values[struct_value]
                         }
                     }
-                }
-            }
-            for (struct_arr_name in struct_array_names) {
-                if (index(struct_arr_name, scope "_") == 1 || (scope == "main" && index(struct_arr_name, "main_") == 1)) {
-                    print "In-Struct Array: " struct_arr_name ", Name: " struct_array_names[struct_arr_name]
-                }
-            }
-            for (struct_arr_value in struct_array_values) {
-                if (index(struct_arr_value, scope "_") == 1 || (scope == "main" && index(struct_arr_value, "main_") == 1)) {
-                    print "In-Struct Arrvalue: " struct_arr_value ", Value: " struct_array_values[struct_arr_value]
+                    for (struct_arr_name in struct_array_names) {
+                        if (index(struct_arr_name, scope "_" struct_names[struct_name] "_") == 1 || (scope == "main" && index(struct_arr_name, "main_" struct_names[struct_name] "_") == 1)) {
+                            print "In-Struct Array: " struct_arr_name ", Name: " struct_array_names[struct_arr_name]
+                        }
+                        for (struct_arr_value in struct_array_values) {
+                            if (index(struct_arr_value, scope "_" struct_names[struct_name] "_" struct_array_names[struct_arr_name]) == 1 || (scope == "main" && index(struct_arr_value, "main_" struct_names[struct_name] "_" struct_array_names[struct_arr_name]) == 1)) {
+                                print "In-Struct Arrvalue: " struct_arr_value ", Value: " struct_array_values[struct_arr_value]
+                            }
+                        }
+                    }
                 }
             }
             for (arr_struct_name in arr_struct_names) {
