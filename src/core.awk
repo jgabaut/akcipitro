@@ -166,12 +166,12 @@ function print_json_output() {
                 print "\"" scope "\": {"
             }
             count_values=0
-            for (var in values) {
+            for (var in variable_names) {
                 if (index(var, scope "_") == 1 || (scope == "main" && index(var, "main_") == 1)) {
                     if (count_values > 0) {
                         printf ",\n"
                     }
-                    printf "    \"" var "\": {\"type\": \"" get_type(values[var]) "\", \"value\": \"" values[var] "\"}"
+                    printf "    \"" variable_names[var] "\": {\"type\": \"" get_type(values[var]) "\", \"value\": \"" values[var] "\"}"
                     count_values++
                 }
             }
@@ -207,12 +207,12 @@ function print_json_output() {
                         printf ",\n"
                     }
                     printf "    \"" struct_names[struct_name] "\": {\n"
-                    for (struct_value in struct_values) {
+                    for (struct_value in struct_variable_names) {
                         if (index(struct_value, scope "_" struct_names[struct_name]) == 1 || (scope == "main" && index(struct_value, "main_" struct_names[struct_name]) == 1)) {
                             if (count_struct_values > 0) {
                                 printf ",\n"
                             }
-                            printf "        \"" struct_value "\": {\"type\": \"" get_type(struct_values[struct_value]) "\", \"value\": \"" struct_values[struct_value] "\"}"
+                            printf "        \"" struct_variable_names[struct_value] "\": {\"type\": \"" get_type(struct_values[struct_value]) "\", \"value\": \"" struct_values[struct_value] "\"}"
                             count_struct_values++
                         }
                     }
@@ -255,12 +255,12 @@ function print_json_output() {
                         printf "        {\n"
                     }
                     count_arr_struct_values=0
-                    for (arr_struct_value in arr_struct_values) {
+                    for (arr_struct_value in arr_struct_variable_names) {
                         if (index(arr_struct_value, scope "_" arr_struct_names[arr_struct_name] "_" i) == 1 || (scope == "main" && index(arr_struct_value, "main_" arr_struct_names[arr_struct_name] "_" i) == 1)) {
                             if (count_arr_struct_values > 0) {
                                 printf ",\n"
                             }
-                            printf "            \"" arr_struct_value "\": {\"type\": \"" get_type(arr_struct_values[arr_struct_value]) "\", \"value\": \"" arr_struct_values[arr_struct_value] "\"}"
+                            printf "            \"" arr_struct_variable_names[arr_struct_value] "\": {\"type\": \"" get_type(arr_struct_values[arr_struct_value]) "\", \"value\": \"" arr_struct_values[arr_struct_value] "\"}"
                             count_arr_struct_values++
                         }
                     }
@@ -355,6 +355,7 @@ function print_json_output() {
             variable = "main_" variable
         }
         values[current_scope "_" variable]=value
+        variable_names[current_scope "_" variable]=variable
         if (!(current_scope in scopes)) {
             scopes[current_scope]++
         }
@@ -417,6 +418,7 @@ function print_json_output() {
                         scopes[current_scope]++
                     }
                     struct_values[current_scope "_" variable "_" var]=val
+                    struct_variable_names[current_scope "_" variable "_" var]=var
                 }
             } else {
                 print "[LEX]    Failed capture of struct_decl " struct_tokens[struct_decl] "" > "/dev/stderr"
@@ -511,6 +513,7 @@ function print_json_output() {
                             scopes[current_scope]++
                         }
                         arr_struct_values[current_scope "_" variable "_" curr_idx "[" var "]"]=val
+                        arr_struct_variable_names[current_scope "_" variable "_" curr_idx "[" var "]" ]=var
                     }
                 } else {
                     print "[LEX]    Failed capture of struct_decl " struct_tokens[struct_decl] "" > "/dev/stderr"
