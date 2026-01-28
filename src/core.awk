@@ -557,7 +557,7 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
                 print "------------------------"
             } else {
                 if (scope != "") {
-                    printf "    }\n"
+                    printf "    }"
                 }
             }
         }
