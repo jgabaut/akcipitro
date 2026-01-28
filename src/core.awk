@@ -170,6 +170,7 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
                     arr_idx=0;
                     split(m2[1], arr_tokens, ",");
                     for (arr_value in arr_tokens) {
+                        gsub(/^[ \t]+|[ \t]+$/, "", arr_tokens[arr_value])
                         m2[1] = gensub(/^ *"([^"=,\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
                         struct_array_values[current_scope "_" variable "_" var "[" arr_idx "]" ]=m2[1]
                         if (!(current_scope in scopes)) {
@@ -262,6 +263,7 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
                         arr_idx=0;
                         split(m2[1], arr_tokens, ",");
                         for (arr_value in arr_tokens) {
+                            gsub(/^[ \t]+|[ \t]+$/, "", arr_tokens[arr_value])
                             m2[1] = gensub(/^ *"([^"=,\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
                             arr_struct_array_values[current_scope "_" variable "_" curr_idx "[" var "_" arr_idx "]" ]=m2[1]
                             if (!(current_scope in scopes)) {
@@ -329,6 +331,7 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
         arr_idx=0;
         split(value, arr_tokens, ",");
         for (arr_value in arr_tokens) {
+            gsub(/^[ \t]+|[ \t]+$/, "", arr_tokens[arr_value])
             val = gensub(/^ *"([^",\\\]]*)" *$/, "\\1", "g", arr_tokens[arr_value])
             array_values[current_scope "_" variable "[" arr_idx "]" ]=val
             if (!(current_scope in scopes)) {
