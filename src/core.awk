@@ -36,6 +36,12 @@ function get_type(val) {
         return "integer"
     } else if (val ~ "^ *" float_rgx " *$") {
         return "float"
+    } else if (val ~ "^ *" ld_rgx " *$") {
+        return "date-local"
+    } else if (val ~ "^ *" lt_rgx " *$") {
+        return "time-local"
+    } else if (val ~ "^ *" ldt_rgx " *$") {
+        return "datetime-local"
     } else if (val ~ "^ *" datetime_rgx " *$") {
         return "datetime"
     } else if (val ~ "^ *(true|false) *$") {
