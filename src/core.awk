@@ -53,7 +53,7 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
 
     banned = "$\"\047\\\\"
     ban_slash = "\\/"
-    scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]=" banned ban_slash "]+\\][[:space:]]*$"
+    scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]=[:space:]" banned ban_slash "]+\\][[:space:]]*$"
     int_rgx = "[+-]?[0-9]+(_[0-9]+)*"
     float_rgx = "[+-]?([[:digit:]]+(\\.[[:digit:]]*)?|\\.[[:digit:]]+)([eE][+-]?[[:digit:]]+)?"
     year_rgx = "[0-9]{4}"
