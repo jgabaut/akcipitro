@@ -175,14 +175,11 @@ function print_json_output() {
                     count_values++
                 }
             }
-            if (count_values > 0) {
-                printf ",\n"
-            }
             count_arrays=0
             for (arr_name in array_names) {
                 count_array_values=0
                 if (index(arr_name, scope "_") == 1 || (scope == "main" && index(arr_name, "main_") == 1)) {
-                    if (count_arrays > 0) {
+                    if (count_arrays > 0 || (count_arrays == 0 && count_values > 0)) {
                         printf ",\n"
                     }
                     printf "    \"" array_names[arr_name] "\": [\n"
