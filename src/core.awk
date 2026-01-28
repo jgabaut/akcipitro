@@ -426,7 +426,7 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
                     if (json == 0) {
                         print "Struct: " struct_name ", Name: " struct_names[struct_name]
                     } else {
-                        if (count_structs > 0) {
+                        if (count_structs > 0 || (count_structs == 0 && count_arrays > 0)) {
                             printf ",\n"
                         }
                         printf "    \"" struct_names[struct_name] "\": {\n"
