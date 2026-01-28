@@ -3,7 +3,7 @@
 BEGIN {
     banned = "$\"\047\\\\"
     ban_slash = "\\/"
-    scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]=[:space:]" banned ban_slash "]+\\][[:space:]]*$"
+    scope_rgx = "^[[:space:]]*\\[[^A-Z\\[\\]=" banned ban_slash "]+\\][[:space:]]*$"
     int_rgx = "[+-]?[0-9]+(_[0-9]+)*"
     float_rgx = "[+-]?([[:digit:]]+(\\.[[:digit:]]*)?|\\.[[:digit:]]+)([eE][+-]?[[:digit:]]+)?"
     year_rgx = "[0-9]{4}"
@@ -83,6 +83,220 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
         out[++n] = buf
 
     return n
+}
+
+function print_amboso_output() {
+    if (error_flag == 1) {
+            print "[LEX]    Errors while lexing." > "/dev/stderr"
+    } else {
+        # Print each scope and its variable-value pairs
+        for (scope in scopes) {
+            print "Scope: " scope
+            for (var in values) {
+                if (index(var, scope "_") == 1 || (scope == "main" && index(var, "main_") == 1)) {
+                    print "Variable: " var ", Value: " values[var]
+                }
+            }
+            for (arr_name in array_names) {
+                if (index(arr_name, scope "_") == 1 || (scope == "main" && index(arr_name, "main_") == 1)) {
+                    print "Array: " arr_name ", Name: " array_names[arr_name]
+                    for (arr_value in array_values) {
+                        if (index(arr_value, scope "_" array_names[arr_name]) == 1 || (scope == "main" && index(arr_value, "main_" array_names[arr_name]) == 1)) {
+                            print "Arrvalue: " arr_value ", Value: " array_values[arr_value]
+                        }
+                    }
+                }
+            }
+            for (struct_name in struct_names) {
+                if (index(struct_name, scope "_") == 1 || (scope == "main" && index(struct_name, "main_") == 1)) {
+                    print "Struct: " struct_name ", Name: " struct_names[struct_name]
+                    for (struct_value in struct_values) {
+                        if (index(struct_value, scope "_" struct_names[struct_name]) == 1 || (scope == "main" && index(struct_value, "main_" struct_names[struct_name]) == 1)) {
+                            print "Structvalue: " struct_value ", Value: " struct_values[struct_value]
+                        }
+                    }
+                    for (struct_arr_name in struct_array_names) {
+                        if (index(struct_arr_name, scope "_" struct_names[struct_name] "_") == 1 || (scope == "main" && index(struct_arr_name, "main_" struct_names[struct_name] "_") == 1)) {
+                            print "In-Struct Array: " struct_arr_name ", Name: " struct_array_names[struct_arr_name]
+                        }
+                        for (struct_arr_value in struct_array_values) {
+                            if (index(struct_arr_value, scope "_" struct_names[struct_name] "_" struct_array_names[struct_arr_name]) == 1 || (scope == "main" && index(struct_arr_value, "main_" struct_names[struct_name] "_" struct_array_names[struct_arr_name]) == 1)) {
+                                print "In-Struct Arrvalue: " struct_arr_value ", Value: " struct_array_values[struct_arr_value]
+                            }
+                        }
+                    }
+                }
+            }
+            for (arr_struct_name in arr_struct_names) {
+                len = arr_struct_lengths[arr_struct_name]
+                for (i = 0; i < len; i++) {
+                    if (index(arr_struct_name, scope "_") == 1 || (scope == "main" && index(arr_struct_name, "main_") == 1)) {
+                        print "In-Arr Struct: " arr_struct_name "_" i ", Name: " arr_struct_names[arr_struct_name]
+                    }
+                    for (arr_struct_value in arr_struct_values) {
+                        if (index(arr_struct_value, scope "_" arr_struct_names[arr_struct_name] "_" i) == 1 || (scope == "main" && index(arr_struct_value, "main_" arr_struct_names[arr_struct_name] "_" i) == 1)) {
+                            print "In-Arr Structvalue: " arr_struct_value ", Value: " arr_struct_values[arr_struct_value]
+                        }
+                    }
+                    for (arr_struct_arr_name in arr_struct_array_names) {
+                        if (index(arr_struct_arr_name, scope "_" arr_struct_names[arr_struct_name] "_" i) == 1 || (scope == "main" && index(arr_struct_arr_name, "main_" arr_struct_names[arr_struct_name] "_" i) == 1)) {
+                            print "In-Arr Struct Array: " arr_struct_arr_name ", Name: " arr_struct_array_names[arr_struct_arr_name] ", Len: " arr_struct_array_lengths[arr_struct_arr_name]
+                            for (arr_struct_arr_value in arr_struct_array_values) {
+                                if (index(arr_struct_arr_value, scope "_" arr_struct_names[arr_struct_name] "_" i "[" arr_struct_array_names[arr_struct_arr_name]) == 1 || (scope == "main" && index(arr_struct_arr_value, "main_" arr_struct_names[arr_struct_name] "_" i "[" arr_struct_array_names[arr_struct_arr_name]) == 1)) {
+                                    print "In-Arr Struct Arrvalue: " arr_struct_arr_value ", Value: " arr_struct_array_values[arr_struct_arr_value]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            print "------------------------"
+        }
+    }
+}
+
+function print_json_output() {
+    if (error_flag == 1) {
+            print "[LEX]    Errors while lexing." > "/dev/stderr"
+    } else {
+        printf "{\n"
+        # Print each scope and its variable-value pairs
+        for (scope in scopes) {
+            if (scope != "") {
+                print "\"" scope "\": {"
+            }
+            count_values=0
+            for (var in values) {
+                if (index(var, scope "_") == 1 || (scope == "main" && index(var, "main_") == 1)) {
+                    if (count_values > 0) {
+                        printf ",\n"
+                    }
+                    printf "    \"" var "\": {\"type\": \"" get_type(values[var]) "\", \"value\": \"" values[var] "\"}"
+                    count_values++
+                }
+            }
+            if (count_values > 0) {
+                printf ",\n"
+            }
+            count_arrays=0
+            for (arr_name in array_names) {
+                count_array_values=0
+                if (index(arr_name, scope "_") == 1 || (scope == "main" && index(arr_name, "main_") == 1)) {
+                    if (count_arrays > 0) {
+                        printf ",\n"
+                    }
+                    printf "    \"" array_names[arr_name] "\": [\n"
+                    for (arr_value in array_values) {
+                        if (index(arr_value, scope "_" array_names[arr_name]) == 1 || (scope == "main" && index(arr_value, "main_" array_names[arr_name]) == 1)) {
+                            if (count_array_values > 0) {
+                                printf ",\n"
+                            }
+                            printf "        {\"type\": \"" get_type(array_values[arr_value]) "\", \"value\": \"" array_values[arr_value] "\"}"
+                            count_array_values++
+                        }
+                    }
+                    printf "\n    ]"
+                    count_arrays++
+                }
+            }
+            count_structs=0
+            for (struct_name in struct_names) {
+                count_struct_values=0
+                if (index(struct_name, scope "_") == 1 || (scope == "main" && index(struct_name, "main_") == 1)) {
+                    if (count_structs > 0 || (count_structs == 0 && count_arrays > 0)) {
+                        printf ",\n"
+                    }
+                    printf "    \"" struct_names[struct_name] "\": {\n"
+                    for (struct_value in struct_values) {
+                        if (index(struct_value, scope "_" struct_names[struct_name]) == 1 || (scope == "main" && index(struct_value, "main_" struct_names[struct_name]) == 1)) {
+                            if (count_struct_values > 0) {
+                                printf ",\n"
+                            }
+                            printf "        \"" struct_value "\": {\"type\": \"" get_type(struct_values[struct_value]) "\", \"value\": \"" struct_values[struct_value] "\"}"
+                            count_struct_values++
+                        }
+                    }
+                    for (struct_arr_name in struct_array_names) {
+                        if (index(struct_arr_name, scope "_" struct_names[struct_name] "_") == 1 || (scope == "main" && index(struct_arr_name, "main_" struct_names[struct_name] "_") == 1)) {
+                            if (count_struct_values > 0) {
+                                printf ",\n"
+                            }
+                            printf "        \"" struct_array_names[struct_arr_name] "\": [\n"
+                        }
+                        count_struct_arr_values=0
+                        for (struct_arr_value in struct_array_values) {
+                            if (index(struct_arr_value, scope "_" struct_names[struct_name] "_" struct_array_names[struct_arr_name]) == 1 || (scope == "main" && index(struct_arr_value, "main_" struct_names[struct_name] "_" struct_array_names[struct_arr_name]) == 1)) {
+                                if (count_struct_arr_values > 0) {
+                                    printf ",\n"
+                                }
+                                printf "            {\"type\": \"" get_type(struct_array_values[struct_arr_value]) "\", \"value\": \"" struct_array_values[struct_arr_value] "\"}"
+                                count_struct_arr_values++
+                            }
+                        }
+                        if (count_struct_arr_values > 0) {
+                            printf "\n        ]"
+                        }
+                    }
+                    printf "\n    }"
+                    count_structs++
+                }
+            }
+            for (arr_struct_name in arr_struct_names) {
+                len = arr_struct_lengths[arr_struct_name]
+                if (count_structs > 0 && count_arr_structs == 0) {
+                    printf ",\n"
+                }
+                printf "    \"" arr_struct_names[arr_struct_name] "\": [\n"
+                for (i = 0; i < len; i++) {
+                    if (index(arr_struct_name, scope "_") == 1 || (scope == "main" && index(arr_struct_name, "main_") == 1)) {
+                        if (i > 0) {
+                            printf ",\n"
+                        }
+                        printf "        {\n"
+                    }
+                    count_arr_struct_values=0
+                    for (arr_struct_value in arr_struct_values) {
+                        if (index(arr_struct_value, scope "_" arr_struct_names[arr_struct_name] "_" i) == 1 || (scope == "main" && index(arr_struct_value, "main_" arr_struct_names[arr_struct_name] "_" i) == 1)) {
+                            if (count_arr_struct_values > 0) {
+                                printf ",\n"
+                            }
+                            printf "            \"" arr_struct_value "\": {\"type\": \"" get_type(arr_struct_values[arr_struct_value]) "\", \"value\": \"" arr_struct_values[arr_struct_value] "\"}"
+                            count_arr_struct_values++
+                        }
+                    }
+                    count_arr_struct_arrays=0
+                    for (arr_struct_arr_name in arr_struct_array_names) {
+                        if (index(arr_struct_arr_name, scope "_" arr_struct_names[arr_struct_name] "_" i) == 1 || (scope == "main" && index(arr_struct_arr_name, "main_" arr_struct_names[arr_struct_name] "_" i) == 1)) {
+                            if (count_arr_struct_arrays > 0) {
+                                printf ",\n"
+                            } else if (count_arr_struct_arrays == 0 && count_arr_struct_values > 0) {
+                                printf ",\n"
+                            }
+                            printf "            \"" arr_struct_array_names[arr_struct_arr_name] "\": [\n"
+                            count_arr_struct_arrays++
+                            count_arr_struct_array_values=0
+                            for (arr_struct_arr_value in arr_struct_array_values) {
+                                if (index(arr_struct_arr_value, scope "_" arr_struct_names[arr_struct_name] "_" i "[" arr_struct_array_names[arr_struct_arr_name]) == 1 || (scope == "main" && index(arr_struct_arr_value, "main_" arr_struct_names[arr_struct_name] "_" i "[" arr_struct_array_names[arr_struct_arr_name]) == 1)) {
+                                    if (count_arr_struct_array_values > 0) {
+                                        printf ",\n"
+                                    }
+                                    printf "                {\"type\": \"" get_type(arr_struct_array_values[arr_struct_arr_value]) "\", \"value\": \"" arr_struct_array_values[arr_struct_arr_value] "\"}"
+                                    count_arr_struct_array_values++
+                                }
+                            }
+                            printf "\n            ]"
+                        }
+                    }
+                    printf "\n        }"
+                }
+                printf "\n    ]"
+            }
+            if (scope != "") {
+                printf "    }"
+            }
+        }
+    }
+    printf "\n}\n"
 }
 
 {
@@ -361,214 +575,10 @@ function split_top_level(s, out,    i,c,buf,depth_sq,depth_cu,in_str,n) {
             }
     }
 } END {
-    if (error_flag == 1) {
-            print "[LEX]    Errors while lexing." > "/dev/stderr"
+    json = ("JSON" in ENVIRON ? ENVIRON["JSON"] : 0)
+    if (json == 0) {
+        print_amboso_output()
     } else {
-        json = ("JSON" in ENVIRON ? ENVIRON["JSON"] : 0)
-        if (json != 0) {
-            printf "{\n"
-        }
-        # Print each scope and its variable-value pairs
-        for (scope in scopes) {
-            if (json == 0) {
-                print "Scope: " scope
-            } else {
-                if (scope != "") {
-                    print "\"" scope "\": {"
-                }
-            }
-            count_values=0
-            for (var in values) {
-                if (index(var, scope "_") == 1 || (scope == "main" && index(var, "main_") == 1)) {
-                    if (json == 0) {
-                        print "Variable: " var ", Value: " values[var]
-                    } else {
-                        if (count_values > 0) {
-                            printf ",\n"
-                        }
-                        printf "    \"" var "\": {\"type\": \"" get_type(values[var]) "\", \"value\": \"" values[var] "\"}"
-                    }
-                    count_values++
-                }
-            }
-            if (json != 0 && count_values > 0) {
-                printf ",\n"
-            }
-            count_arrays=0
-            for (arr_name in array_names) {
-                count_array_values=0
-                if (index(arr_name, scope "_") == 1 || (scope == "main" && index(arr_name, "main_") == 1)) {
-                    if (json == 0) {
-                        print "Array: " arr_name ", Name: " array_names[arr_name]
-                    } else {
-                        if (count_arrays > 0) {
-                            printf ",\n"
-                        }
-                        printf "    \"" array_names[arr_name] "\": [\n"
-                    }
-                    for (arr_value in array_values) {
-                        if (index(arr_value, scope "_" array_names[arr_name]) == 1 || (scope == "main" && index(arr_value, "main_" array_names[arr_name]) == 1)) {
-                            if (json == 0) {
-                                print "Arrvalue: " arr_value ", Value: " array_values[arr_value]
-                            } else {
-                                if (count_array_values > 0) {
-                                    printf ",\n"
-                                }
-                                printf "        {\"type\": \"" get_type(array_values[arr_value]) "\", \"value\": \"" array_values[arr_value] "\"}"
-                            }
-                            count_array_values++
-                        }
-                    }
-                    if (json != 0) {
-                        printf "\n    ]"
-                    }
-                    count_arrays++
-                }
-            }
-            count_structs=0
-            for (struct_name in struct_names) {
-                count_struct_values=0
-                if (index(struct_name, scope "_") == 1 || (scope == "main" && index(struct_name, "main_") == 1)) {
-                    if (json == 0) {
-                        print "Struct: " struct_name ", Name: " struct_names[struct_name]
-                    } else {
-                        if (count_structs > 0 || (count_structs == 0 && count_arrays > 0)) {
-                            printf ",\n"
-                        }
-                        printf "    \"" struct_names[struct_name] "\": {\n"
-                    }
-                    for (struct_value in struct_values) {
-                        if (index(struct_value, scope "_" struct_names[struct_name]) == 1 || (scope == "main" && index(struct_value, "main_" struct_names[struct_name]) == 1)) {
-                            if (json == 0) {
-                                print "Structvalue: " struct_value ", Value: " struct_values[struct_value]
-                            } else {
-                                if (count_struct_values > 0) {
-                                    printf ",\n"
-                                }
-                                printf "        \"" struct_value "\": {\"type\": \"" get_type(struct_values[struct_value]) "\", \"value\": \"" struct_values[struct_value] "\"}"
-                            }
-                            count_struct_values++
-                        }
-                    }
-                    for (struct_arr_name in struct_array_names) {
-                        if (index(struct_arr_name, scope "_" struct_names[struct_name] "_") == 1 || (scope == "main" && index(struct_arr_name, "main_" struct_names[struct_name] "_") == 1)) {
-                            if (json == 0) {
-                                print "In-Struct Array: " struct_arr_name ", Name: " struct_array_names[struct_arr_name]
-                            } else {
-                                if (count_struct_values > 0) {
-                                    printf ",\n"
-                                }
-                                printf "        \"" struct_array_names[struct_arr_name] "\": [\n"
-                            }
-                        }
-                        count_struct_arr_values=0
-                        for (struct_arr_value in struct_array_values) {
-                            if (index(struct_arr_value, scope "_" struct_names[struct_name] "_" struct_array_names[struct_arr_name]) == 1 || (scope == "main" && index(struct_arr_value, "main_" struct_names[struct_name] "_" struct_array_names[struct_arr_name]) == 1)) {
-                                if (json == 0) {
-                                    print "In-Struct Arrvalue: " struct_arr_value ", Value: " struct_array_values[struct_arr_value]
-                                } else {
-                                    if (count_struct_arr_values > 0) {
-                                        printf ",\n"
-                                    }
-                                    printf "            {\"type\": \"" get_type(struct_array_values[struct_arr_value]) "\", \"value\": \"" struct_array_values[struct_arr_value] "\"}"
-                                }
-                                count_struct_arr_values++
-                            }
-                        }
-                        if (json != 0 && count_struct_arr_values > 0) {
-                            printf "\n        ]"
-                        }
-                    }
-                    if (json != 0) {
-                        printf "\n    }"
-                    }
-                    count_structs++
-                }
-            }
-            for (arr_struct_name in arr_struct_names) {
-                len = arr_struct_lengths[arr_struct_name]
-                if (json != 0) {
-                    if (count_structs > 0 && count_arr_structs == 0) {
-                        printf ",\n"
-                    }
-                    printf "    \"" arr_struct_names[arr_struct_name] "\": [\n"
-                }
-                for (i = 0; i < len; i++) {
-                    if (index(arr_struct_name, scope "_") == 1 || (scope == "main" && index(arr_struct_name, "main_") == 1)) {
-                        if (json == 0) {
-                            print "In-Arr Struct: " arr_struct_name "_" i ", Name: " arr_struct_names[arr_struct_name]
-                        } else {
-                            if (i > 0) {
-                                printf ",\n"
-                            }
-                            printf "        {\n"
-                        }
-                    }
-                    count_arr_struct_values=0
-                    for (arr_struct_value in arr_struct_values) {
-                        if (index(arr_struct_value, scope "_" arr_struct_names[arr_struct_name] "_" i) == 1 || (scope == "main" && index(arr_struct_value, "main_" arr_struct_names[arr_struct_name] "_" i) == 1)) {
-                            if (json == 0) {
-                                print "In-Arr Structvalue: " arr_struct_value ", Value: " arr_struct_values[arr_struct_value]
-                            } else {
-                                if (count_arr_struct_values > 0) {
-                                    printf ",\n"
-                                }
-                                printf "            \"" arr_struct_value "\": {\"type\": \"" get_type(arr_struct_values[arr_struct_value]) "\", \"value\": \"" arr_struct_values[arr_struct_value] "\"}"
-                            }
-                            count_arr_struct_values++
-                        }
-                    }
-                    count_arr_struct_arrays=0
-                    for (arr_struct_arr_name in arr_struct_array_names) {
-                        if (index(arr_struct_arr_name, scope "_" arr_struct_names[arr_struct_name] "_" i) == 1 || (scope == "main" && index(arr_struct_arr_name, "main_" arr_struct_names[arr_struct_name] "_" i) == 1)) {
-                            if (json == 0) {
-                                print "In-Arr Struct Array: " arr_struct_arr_name ", Name: " arr_struct_array_names[arr_struct_arr_name] ", Len: " arr_struct_array_lengths[arr_struct_arr_name]
-                            } else {
-                                if (count_arr_struct_arrays > 0) {
-                                    printf ",\n"
-                                } else if (count_arr_struct_arrays == 0 && count_arr_struct_values > 0) {
-                                    printf ",\n"
-                                }
-                                printf "            \"" arr_struct_array_names[arr_struct_arr_name] "\": [\n"
-                            }
-                            count_arr_struct_arrays++
-                            count_arr_struct_array_values=0
-                            for (arr_struct_arr_value in arr_struct_array_values) {
-                                if (index(arr_struct_arr_value, scope "_" arr_struct_names[arr_struct_name] "_" i "[" arr_struct_array_names[arr_struct_arr_name]) == 1 || (scope == "main" && index(arr_struct_arr_value, "main_" arr_struct_names[arr_struct_name] "_" i "[" arr_struct_array_names[arr_struct_arr_name]) == 1)) {
-                                    if (json == 0) {
-                                        print "In-Arr Struct Arrvalue: " arr_struct_arr_value ", Value: " arr_struct_array_values[arr_struct_arr_value]
-                                    } else {
-                                        if (count_arr_struct_array_values > 0) {
-                                            printf ",\n"
-                                        }
-                                        printf "                {\"type\": \"" get_type(arr_struct_array_values[arr_struct_arr_value]) "\", \"value\": \"" arr_struct_array_values[arr_struct_arr_value] "\"}"
-                                    }
-                                    count_arr_struct_array_values++
-                                }
-                            }
-                            if (json != 0) {
-                                printf "\n            ]"
-                            }
-                        }
-                    }
-                    if (json != 0) {
-                        printf "\n        }"
-                    }
-                }
-                if (json != 0) {
-                    printf "\n    ]"
-                }
-            }
-            if (json == 0) {
-                print "------------------------"
-            } else {
-                if (scope != "") {
-                    printf "    }"
-                }
-            }
-        }
-    }
-    if (json != 0) {
-        printf "\n}\n"
+        print_json_output()
     }
 }
