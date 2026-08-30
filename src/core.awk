@@ -240,7 +240,7 @@ function print_json_output() {
             }
             for (arr_struct_name in arr_struct_names) {
                 len = arr_struct_lengths[arr_struct_name]
-                if (count_structs > 0 && count_arr_structs == 0) {
+                if (count_structs > 0 || (count_structs == 0 && count_arrays > 0)) {
                     printf ",\n"
                 }
                 printf "    \"" arr_struct_names[arr_struct_name] "\": [\n"
